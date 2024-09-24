@@ -5,7 +5,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . .
+COPY ./cmd/api/ ./cmd/api/
+COPY ./pkg/ ./pkg/
 
 RUN go build -o llm-rag-go ./cmd/api/
 
