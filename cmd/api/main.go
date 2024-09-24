@@ -34,6 +34,10 @@ func main() {
 	app.infoLogger.Println("Starting server...")
 
 	router := chi.NewRouter()
+
+	router.NotFound(app.notFoundResponse)
+	router.MethodNotAllowed(app.methodNotAllowedResponse)
+
 	router.Post("/v1/upload", app.upload)
 	router.Post("/v1/query", app.query)
 
@@ -42,7 +46,7 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Listening on port %s", port)
+	app.infoLogger.Printf("Listening on port %s", port)
 	if err := http.ListenAndServe(":"+port, router); err != nil {
 		app.errorLogger.Fatal(err)
 	}

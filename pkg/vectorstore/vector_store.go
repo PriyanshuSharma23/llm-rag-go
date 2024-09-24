@@ -1,13 +1,13 @@
 package vectorstore
 
 type VectorStore interface {
-	AddDocuments(documents Documents)
+	AddDocuments(documents Documents) error
 	SimilaritySearch()
 }
 
 type Document struct {
-	Content  string
-	Metadata map[string]interface{}
+	Content  string                 `json:"content"`
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
 type Documents []Document

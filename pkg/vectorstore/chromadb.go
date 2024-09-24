@@ -6,11 +6,21 @@ import (
 	"os"
 
 	chroma "github.com/amikos-tech/chroma-go"
+	"github.com/amikos-tech/chroma-go/openai"
+	"github.com/amikos-tech/chroma-go/types"
 )
 
 type chromaDB struct {
 	collection *chroma.Collection
 	client     *chroma.Client
+}
+
+func openAIEmbeddingFunction(apiKey string) (types.EmbeddingFunction, error) {
+	return openai.NewOpenAIEmbeddingFunction(apiKey)
+}
+
+func newIdGenerator() types.IDGenerator {
+	return types.NewULIDGenerator()
 }
 
 func NewChromaClient() (*chroma.Client, *chroma.Collection, error) {
@@ -47,7 +57,38 @@ func NewChromaDB(client *chroma.Client, collection *chroma.Collection) VectorSto
 	}
 }
 
-func (vs *chromaDB) AddDocuments(documents Documents) {
+func (vs *chromaDB) AddDocuments(documents Documents) error {
+	embeddingFunction, err := openAIEmbeddingFunction(os.Getenv("OPENAI_API_KEY"))
+	if err != nil {
+		return fmt.Errorf("error creating embedding function: %s", err)
+	}
+
+	rs, err := types.NewRecordSet(
+		types.WithEmbeddingFunction(embeddingFunction),
+		types.WithIDGenerator(newIdGenerator()),
+	)
+
+	if err != nil {
+		return fmt.Errorf("error creating record set: %s", err)
+	}
+
+	for _, document := range documents {
+		rs.WithRecord(
+			types.WithDocument(document.Content),
+			types.WithMetadatas(document.Metadata),
+		)
+	}
+
+	if _, err := rs.BuildAndValidate(context.Background()); err != nil {
+		return fmt.Errorf("error building and validating record set: %s", err)
+	}
+
+	_, err = vs.collection.AddRecords(context.Background(), rs)
+	if err != nil {
+		return fmt.Errorf("error adding records to collection: %s", err)
+	}
+
+	return nil
 }
 
 func (vs *chromaDB) SimilaritySearch() {
