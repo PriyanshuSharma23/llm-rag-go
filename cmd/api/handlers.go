@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/PriyanshuSharma23/llm-rag-go/pkg/llm"
 	"github.com/PriyanshuSharma23/llm-rag-go/pkg/vectorstore"
 )
 
@@ -50,7 +52,20 @@ func (app *application) query(w http.ResponseWriter, r *http.Request) {
 
 	app.infoLogger.Println("Similarity search completed successfully")
 
-	err = app.writeJSONResponse(w, http.StatusOK, envelope{"results": results})
+	referencesText := ""
+	for _, result := range results {
+		referencesText += result.Document + "\n"
+	}
+
+	llmQuery := fmt.Sprintf("%s\nRefernces:\n%s", req.QueryText, referencesText)
+
+	resp, err := llm.GenerateCompletion(llmQuery)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSONResponse(w, http.StatusOK, envelope{"response": resp})
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

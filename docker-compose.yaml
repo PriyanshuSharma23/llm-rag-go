@@ -11,7 +11,7 @@ services:
     volumes:
       - ./chroma/data:/data
   initvectorstore:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.initvectorstore
     depends_on:
@@ -20,7 +20,7 @@ services:
     environment:
       APPLICATION_NAME: llm-rag-go
       CHROMA_URL: http://chroma:8000
-      OPENAI_API_KEY: 
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
   llm-rag-go:
     build: .
     ports:
@@ -31,4 +31,4 @@ services:
       APPLICATION_NAME: llm-rag-go
       APPLICATION_PORT: 8080
       CHROMA_URL: http://chroma:8000
-      OPENAI_API_KEY: 
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
