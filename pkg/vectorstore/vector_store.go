@@ -2,7 +2,7 @@ package vectorstore
 
 type VectorStore interface {
 	AddDocuments(documents Documents) error
-	SimilaritySearch()
+	SimilaritySearch(query string) ([]SearchResult, error)
 }
 
 type Document struct {
@@ -11,3 +11,10 @@ type Document struct {
 }
 
 type Documents []Document
+
+type SearchResult struct {
+	Document string                 `json:"document"`
+	Distance float32                `json:"distance"`
+	Metadata map[string]interface{} `json:"metadata"`
+	ID       string                 `json:"id"`
+}

@@ -15,7 +15,12 @@ type chromaDB struct {
 	client     *chroma.Client
 }
 
-func openAIEmbeddingFunction(apiKey string) (types.EmbeddingFunction, error) {
+func openAIEmbeddingFunction() (types.EmbeddingFunction, error) {
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("OPENAI_API_KEY is not set")
+	}
+
 	return openai.NewOpenAIEmbeddingFunction(apiKey)
 }
 
@@ -40,7 +45,12 @@ func NewChromaClient() (*chroma.Client, *chroma.Collection, error) {
 		return nil, nil, fmt.Errorf("error creating chroma client: %s", err)
 	}
 
-	newCollection, err := client.GetCollection(context.Background(), "documents", nil)
+	embedddingFunction, err := openAIEmbeddingFunction()
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating embedding function: %s", err)
+	}
+
+	newCollection, err := client.GetCollection(context.Background(), "documents", embedddingFunction)
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -58,7 +68,7 @@ func NewChromaDB(client *chroma.Client, collection *chroma.Collection) VectorSto
 }
 
 func (vs *chromaDB) AddDocuments(documents Documents) error {
-	embeddingFunction, err := openAIEmbeddingFunction(os.Getenv("OPENAI_API_KEY"))
+	embeddingFunction, err := openAIEmbeddingFunction()
 	if err != nil {
 		return fmt.Errorf("error creating embedding function: %s", err)
 	}
@@ -91,5 +101,22 @@ func (vs *chromaDB) AddDocuments(documents Documents) error {
 	return nil
 }
 
-func (vs *chromaDB) SimilaritySearch() {
+func (vs *chromaDB) SimilaritySearch(query string) ([]SearchResult, error) {
+	qr, err := vs.collection.Query(context.Background(), []string{query}, 4, nil, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error querying collection: %s", err)
+	}
+
+	results := make([]SearchResult, len(qr.Documents[0]))
+
+	for i := 0; i < len(qr.Documents[0]); i++ {
+		results[i] = SearchResult{
+			Document: qr.Documents[0][i],
+			Distance: qr.Distances[0][i],
+			Metadata: qr.Metadatas[0][i],
+			ID:       qr.Ids[0][i],
+		}
+	}
+
+	return results, nil
 }

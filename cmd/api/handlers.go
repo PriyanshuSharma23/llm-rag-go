@@ -31,5 +31,27 @@ func (app *application) upload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type queryRequest struct {
+	QueryText string `json:"query_text"`
+}
+
 func (app *application) query(w http.ResponseWriter, r *http.Request) {
+	var req queryRequest
+	if err := app.parseJSONBody(r, &req); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	results, err := app.vectorStore.SimilaritySearch(req.QueryText)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	app.infoLogger.Println("Similarity search completed successfully")
+
+	err = app.writeJSONResponse(w, http.StatusOK, envelope{"results": results})
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
